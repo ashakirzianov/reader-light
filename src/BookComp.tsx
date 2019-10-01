@@ -10,12 +10,21 @@ export function BookComp(props: BookProps) {
         path: [],
         nodes: props.book.volume.nodes,
     };
-    return <BookFragmentComp
-        fragment={fragment}
-        fontFamily='Georgia'
-        fontSize={24}
-        color='black'
-        refColor='blue'
-        refHoverColor='purple'
-    />;
+    return <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+    }}>
+        <div style={{
+            maxWidth: '50em',
+        }}>
+            <BookFragmentComp
+                fragment={fragment}
+                fontFamily='Georgia'
+                fontSize={24}
+                color='black'
+                refColor='blue'
+                refHoverColor='purple'
+            />
+        </div>
+    </div>;
 }
