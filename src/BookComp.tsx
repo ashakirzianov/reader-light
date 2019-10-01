@@ -5,7 +5,6 @@ import { BookFragmentComp } from './reader';
 export type BookProps = {
     book: Book,
 }
-
 export function BookComp(props: BookProps) {
     const fragment: BookFragment = {
         path: [],
