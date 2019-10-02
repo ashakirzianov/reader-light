@@ -17,8 +17,8 @@ export function BookFragmentComp({
             return;
         }
         if (selection) {
-            const start = [...fragment.path, ...selection.range.start];
-            const end = [...fragment.path, ...selection.range.end];
+            const start = [...fragment.current, ...selection.range.start];
+            const end = [...fragment.current, ...selection.range.end];
             const actualSelection = {
                 text: selection.text,
                 range: { start, end },
@@ -27,20 +27,20 @@ export function BookFragmentComp({
         } else {
             onSelectionChange(selection);
         }
-    }, [fragment.path]);
+    }, [onSelectionChange, fragment]);
 
     const scrollHandler = React.useCallback((path: number[]) => {
         if (onScroll) {
-            const actualPath = [...fragment.path, ...path];
+            const actualPath = [...fragment.current, ...path];
             onScroll(actualPath);
         }
-    }, [onScroll, fragment.path]);
+    }, [onScroll, fragment]);
 
-    const adjustedPathToScroll = (pathToScroll && pathToScroll.slice(fragment.path.length)) || undefined;
+    const adjustedPathToScroll = (pathToScroll && pathToScroll.slice(fragment.current.length)) || undefined;
 
     const adjustedColorization = colorization
         ? filterUndefined(colorization.map(col => {
-            const relativeRange = rangeRelativeToPath(col.range, fragment.path);
+            const relativeRange = rangeRelativeToPath(col.range, fragment.current);
             return relativeRange && {
                 ...col,
                 range: relativeRange,
