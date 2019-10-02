@@ -1,7 +1,10 @@
 import * as React from 'react';
 
 export type Color = string;
-export type Path = number[];
+export type Path = {
+    block: number,
+    symbol?: number,
+};
 export type Range = {
     start: Path,
     end: Path,
@@ -92,7 +95,7 @@ export function RichText({
             (block, idx) =>
                 <RichTextBlock
                     key={idx}
-                    path={[idx]}
+                    path={{ block: idx }}
                     block={block}
                     refCallback={(ref, path) => {
                         refMap.current.set(path, ref);
@@ -118,7 +121,7 @@ function RichTextBlock({ block, refCallback, path, onRefClick }: RichTextBlockPr
         const offset = currentOffset;
         children.push(<RichTextFragment
             key={idx}
-            path={[...path, offset]}
+            path={{ ...path, symbol: offset }}
             fragment={frag}
             refCallback={refCallback}
             onRefClick={onRefClick}
@@ -208,50 +211,45 @@ type PathMap<T> = {
 
 function makePathMap<T>(): PathMap<T> {
     type MapNode = {
-        [idx: number]: {
-            value?: T,
-            children: PathMap<T>,
-        } | undefined,
+        symbols: T[],
+        value?: T,
     };
-    const node: MapNode = {};
+    const map: MapNode[] = [];
     return {
         get(path) {
-            if (path.length === 0) {
-                return undefined;
-            }
-            const head = node[path[0]];
-            if (path.length === 1) {
-                return head && head.value;
+            const block = map[path.block];
+            if (path.symbol !== undefined) {
+                return block && block.symbols[path.symbol];
             } else {
-                return head && head.children.get(path.slice(1));
+                return block && block.value;
             }
         },
         set(path, value) {
-            if (path.length === 0) {
-                return;
-            }
-            let head = node[path[0]];
-            if (head === undefined) {
-                head = {
-                    children: makePathMap(),
+            let block = map[path.block];
+            if (block === undefined) {
+                block = {
+                    symbols: [],
                 };
-                node[path[0]] = head;
+                map[path.block] = block;
             }
-            if (path.length === 1) {
-                head.value = value;
+            if (path.symbol !== undefined) {
+                block.symbols[path.symbol] = value;
             } else {
-                head.children.set(path.slice(1), value);
+                block.value = value;
             }
         },
         iterator: function* () {
-            for (const [key, value] of Object.entries(node)) {
-                const idx = parseInt(key, 10);
-                if (value) {
-                    if (value.value) {
-                        yield [[idx], value.value];
+            for (let idx = 0; idx < map.length; idx++) {
+                const block = map[idx];
+                if (block !== undefined) {
+                    if (block.value !== undefined) {
+                        yield [{ block: idx }, block.value];
                     }
-                    for (const [chPath, chValue] of value.children.iterator()) {
-                        yield [[idx, ...chPath], chValue];
+                    for (let subIdx = 0; subIdx < block.symbols.length; subIdx++) {
+                        const symbol = block.symbols[subIdx];
+                        if (symbol !== undefined) {
+                            yield [{ block: idx, symbol: subIdx }, symbol];
+                        }
                     }
                 }
             }
@@ -286,7 +284,7 @@ function useSelection(callback: (e: Event) => void) {
 // Scroll
 
 function computeCurrentPath(refMap: PathMap<RefType>) {
-    let last: number[] | undefined;
+    let last: Path | undefined;
     for (const [path, ref] of refMap.iterator()) {
         const isVisible = isPartiallyVisible(ref);
         if (isVisible) {
@@ -343,8 +341,12 @@ function getSelectionRange(): RichTextSelection | undefined {
     const focusPath = pathForNode(selection.focusNode);
 
     if (anchorPath && focusPath) {
-        anchorPath[anchorPath.length - 1] += selection.anchorOffset;
-        focusPath[focusPath.length - 1] += selection.focusOffset;
+        anchorPath.symbol = anchorPath.symbol
+            ? selection.anchorOffset + anchorPath.symbol
+            : selection.anchorOffset;
+        focusPath.symbol = focusPath.symbol
+            ? selection.focusOffset + focusPath.symbol
+            : selection.focusOffset;
         const range = makeRange(anchorPath, focusPath);
         const text = selection.toString();
         return { range, text };
@@ -382,20 +384,15 @@ function makeRange(left: Path, right: Path): Range {
 }
 
 function pathLessThan(left: Path, right: Path): boolean {
-    for (let idx = 0; idx < right.length; idx++) {
-        const lc = left[idx];
-        if (lc === undefined) {
-            return true;
-        }
-        const rc = right[idx];
-        if (lc < rc) {
-            return true;
-        } else if (lc > rc) {
-            return false;
+    if (left.block < right.block) {
+        return true;
+    } else {
+        if (left.symbol !== undefined) {
+            return right.symbol !== undefined && left.symbol < right.symbol;
+        } else {
+            return right.symbol !== undefined;
         }
     }
-
-    return left.length < right.length;
 }
 
 const idPrefix = '@id';
@@ -414,7 +411,9 @@ function idToPath(str: string): Path | undefined {
 }
 
 function pathToString(path: Path): string {
-    return `${path.join('-')}`;
+    return path.symbol === undefined
+        ? `${path.block}`
+        : `${path.block}-${path.symbol}`;
 }
 
 function parsePath(pathString: string): Path | undefined {
@@ -422,7 +421,10 @@ function parsePath(pathString: string): Path | undefined {
         .split('-')
         .map(pc => parseInt(pc, 10))
         ;
-    return path.some(p => isNaN(p))
+    return path.length > 2 || path.some(p => isNaN(p))
         ? undefined
-        : path;
+        : {
+            block: path[0],
+            symbol: path[1],
+        };
 }

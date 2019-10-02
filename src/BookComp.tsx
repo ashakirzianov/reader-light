@@ -8,16 +8,21 @@ export type BookProps = {
 }
 export function BookComp({ book }: BookProps) {
     const [path, setPath] = React.useState<BookPath>([]);
+    const [scrollPath, setScrollPath] = React.useState<BookPath>([]);
     const fragment = fragmentForPath(book, path);
     return <div style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        margin: '1em',
     }}>
-        <TableOfContentsComp
-            toc={tocForBook(book)}
-            navigateToPath={setPath}
-        />
+        <Header>
+            <span>Path: {scrollPath.join('-')}</span>
+            <TableOfContentsComp
+                toc={tocForBook(book)}
+                navigateToPath={setPath}
+            />
+        </Header>
         <PathLink
             path={fragment.previous}
             text='Previous'
@@ -34,6 +39,7 @@ export function BookComp({ book }: BookProps) {
                 color='black'
                 refColor='blue'
                 refHoverColor='purple'
+                onScroll={setScrollPath}
             />
         </div>
         <PathLink
@@ -80,9 +86,13 @@ function TableOfContentsComp({ toc, navigateToPath }: TableOfContentsProps) {
         flexDirection: 'column',
         justifyContent: 'flex-start',
     }}>
-        <button onClick={() => setVisible(!visible)}>
-            Table of Contents
-        </button>
+        <div>
+            <button
+                onClick={() => setVisible(!visible)}
+            >
+                {visible ? 'Hide Table of Contents' : 'Show Table of Contents'}
+            </button>
+        </div>
         {
             !visible ? null :
                 toc.items.map(i =>
@@ -96,5 +106,20 @@ function TableOfContentsComp({ toc, navigateToPath }: TableOfContentsProps) {
                         }}
                     />)
         }
+    </div>
+}
+
+type HeaderProps = {
+    children?: React.ReactNode,
+};
+function Header({ children }: HeaderProps) {
+    return <div style={{
+        position: 'fixed',
+        left: 0, top: 0,
+        overflow: 'scroll',
+        height: '100%',
+        maxHeight: '100%',
+    }}>
+        {children}
     </div>
 }

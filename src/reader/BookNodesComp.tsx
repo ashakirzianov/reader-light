@@ -95,7 +95,7 @@ type BuildBlocksEnv = {
 type BlocksData = {
     blocks: RichTextBlock[],
     blockPathToBookPath(path: Path): BookPath,
-    bookPathToBlockPath(path: BookPath): Path,
+    bookPathToBlockPath(path: BookPath): Path | undefined,
 };
 
 function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksData {
@@ -112,9 +112,9 @@ function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksD
     return {
         blocks,
         blockPathToBookPath(path) {
-            const prefix = prefixedBlocks[path[0]].prefix;
-            const bookPath = path[1] !== undefined
-                ? [...prefix, path[1]]
+            const prefix = prefixedBlocks[path.block].prefix;
+            const bookPath = path.symbol !== undefined
+                ? [...prefix, path.symbol]
                 : prefix;
             return bookPath;
         },
@@ -127,7 +127,12 @@ function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksD
                 ? prefixes.length - blockIndex - 1
                 : undefined;
 
-            return idx ? [idx] : [];
+            return idx ? {
+                block: idx,
+                symbol: path.length > 1
+                    ? path[path.length - 1]
+                    : undefined,
+            } : undefined;
         },
     };
 }
@@ -331,15 +336,10 @@ function colorizationRelativeToPath(path: BookPath, colorized: ColorizedRange): 
         return undefined;
     }
 
-    if (!pathLessThan(path, colorized.range.start)) {
-        return {
-            start: 0,
-            attrs,
-        };
-    }
-
     let start: number | undefined;
-    if (isSubpath(path, colorized.range.start)) {
+    if (!pathLessThan(path, colorized.range.start)) {
+        start = 0;
+    } else if (isSubpath(path, colorized.range.start)) {
         start = colorized.range.start[path.length];
     }
     let end: number | undefined;
