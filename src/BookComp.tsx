@@ -1,22 +1,27 @@
 import * as React from 'react';
-import { Book, BookFragment } from 'booka-common';
+import { Book, fragmentForPath, BookPath } from 'booka-common';
 import { BookFragmentComp } from './reader';
 
 export type BookProps = {
     book: Book,
 }
-export function BookComp(props: BookProps) {
-    const fragment: BookFragment = {
-        path: [],
-        nodes: props.book.volume.nodes,
-    };
+export function BookComp({ book }: BookProps) {
+    const [path, setPath] = React.useState<BookPath>([]);
+    const fragment = fragmentForPath(book, path);
     return <div style={{
         display: 'flex',
-        justifyContent: 'center',
+        flexDirection: 'column',
+        alignItems: 'center',
     }}>
+        <PathLink
+            path={fragment.previous}
+            text='Previous'
+            onClick={setPath}
+        />
         <div style={{
             maxWidth: '50em',
         }}>
+
             <BookFragmentComp
                 fragment={fragment}
                 fontFamily='Georgia'
@@ -26,5 +31,32 @@ export function BookComp(props: BookProps) {
                 refHoverColor='purple'
             />
         </div>
+        <PathLink
+            path={fragment.next}
+            text='Next'
+            onClick={setPath}
+        />
     </div>;
+}
+
+type PathLinkProps = {
+    path?: BookPath,
+    onClick: (path: BookPath) => void,
+    text: string,
+};
+function PathLink({ path, onClick, text }: PathLinkProps) {
+    return path === undefined
+        ? null
+        : <button
+            onClick={() => {
+                onClick(path);
+                window.scrollTo(0, 0);
+            }}
+            style={{
+                margin: '1em',
+                fontSize: '2em',
+            }}
+        >
+            {text}
+        </button>
 }
