@@ -52,20 +52,20 @@ type PathLinkProps = {
 function PathLink({ path, navigateToPath: onClick, text }: PathLinkProps) {
     return path === undefined
         ? null
-        : <a
-            href=''
+        : <span
             onClick={e => {
                 e.preventDefault();
                 onClick(path);
                 window.scrollTo(0, 0);
             }}
             style={{
-                // margin: '1em',
-                fontSize: '2em',
+                color: 'blue',
+                cursor: 'pointer',
+                fontSize: '1.5em',
             }}
         >
             {text}
-        </a>
+        </span>
 }
 
 type TableOfContentsProps = {
