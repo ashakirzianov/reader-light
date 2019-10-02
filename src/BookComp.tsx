@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Book, fragmentForPath, BookPath } from 'booka-common';
+import {
+    Book, fragmentForPath, BookPath, findReference,
+} from 'booka-common';
 import { BookFragmentComp } from './reader';
 import { TableOfContents, tocForBook } from 'booka-common';
 
@@ -40,6 +42,12 @@ export function BookComp({ book }: BookProps) {
                 refColor='blue'
                 refHoverColor='purple'
                 onScroll={setScrollPath}
+                onRefClick={refId => {
+                    const ref = findReference(refId, book.volume);
+                    if (ref) {
+                        setPath(ref[1]);
+                    }
+                }}
             />
         </div>
         <PathLink
