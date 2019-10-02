@@ -4,14 +4,21 @@ import {
 } from 'booka-common';
 import { BookFragmentComp } from './reader';
 import { TableOfContents, tocForBook } from 'booka-common';
+import { Link, navigate } from '@reach/router';
 
 export type BookProps = {
     book: Book,
+    id: string,
+    path: BookPath,
 }
-export function BookComp({ book }: BookProps) {
-    const [path, setPath] = React.useState<BookPath>([]);
-    const [scrollPath, setScrollPath] = React.useState<BookPath>([]);
+export function BookComp({ book, id, path }: BookProps) {
     const fragment = fragmentForPath(book, path);
+    const onRefClick = React.useCallback((refId: string) => {
+        const ref = findReference(refId, book.volume);
+        if (ref) {
+            navigateToPath(id, ref[1]);
+        }
+    }, [book, id]);
     return <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -19,16 +26,15 @@ export function BookComp({ book }: BookProps) {
         margin: '1em',
     }}>
         <Header>
-            <span>Path: {scrollPath.join('-')}</span>
             <TableOfContentsComp
+                id={id}
                 toc={tocForBook(book)}
-                navigateToPath={setPath}
             />
         </Header>
         <PathLink
+            id={id}
             path={fragment.previous}
             text='Previous'
-            navigateToPath={setPath}
         />
         <div style={{
             maxWidth: '50em',
@@ -41,37 +47,31 @@ export function BookComp({ book }: BookProps) {
                 color='black'
                 refColor='blue'
                 refHoverColor='purple'
-                onScroll={setScrollPath}
-                onRefClick={refId => {
-                    const ref = findReference(refId, book.volume);
-                    if (ref) {
-                        setPath(ref[1]);
-                    }
+                pathToScroll={path}
+                onScroll={p => {
+                    setBrowserPath(id, p);
                 }}
+                onRefClick={onRefClick}
             />
         </div>
         <PathLink
+            id={id}
             path={fragment.next}
             text='Next'
-            navigateToPath={setPath}
         />
     </div>;
 }
 
 type PathLinkProps = {
     path?: BookPath,
-    navigateToPath: (path: BookPath) => void,
+    id: string,
     text: string,
 };
-function PathLink({ path, navigateToPath: onClick, text }: PathLinkProps) {
+function PathLink({ path, id, text }: PathLinkProps) {
     return path === undefined
         ? null
-        : <span
-            onClick={e => {
-                e.preventDefault();
-                onClick(path);
-                window.scrollTo(0, 0);
-            }}
+        : <Link
+            to={bookUrl(id, path)}
             style={{
                 color: 'blue',
                 cursor: 'pointer',
@@ -79,14 +79,14 @@ function PathLink({ path, navigateToPath: onClick, text }: PathLinkProps) {
             }}
         >
             {text}
-        </span>
+        </Link>
 }
 
 type TableOfContentsProps = {
     toc: TableOfContents,
-    navigateToPath: (path: BookPath) => void,
+    id: string,
 }
-function TableOfContentsComp({ toc, navigateToPath }: TableOfContentsProps) {
+function TableOfContentsComp({ toc, id }: TableOfContentsProps) {
     const [visible, setVisible] = React.useState(false);
 
     return <div style={{
@@ -101,19 +101,23 @@ function TableOfContentsComp({ toc, navigateToPath }: TableOfContentsProps) {
                 {visible ? 'Hide Table of Contents' : 'Show Table of Contents'}
             </button>
         </div>
-        {
-            !visible ? null :
-                toc.items.map(i =>
-                    <PathLink
-                        key={i.path.join('-')}
-                        path={i.path}
-                        text={i.title[0]}
-                        navigateToPath={p => {
-                            navigateToPath(p);
-                            setVisible(false);
-                        }}
-                    />)
-        }
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            background: '#EEEEEE',
+        }}>
+            {
+                !visible ? null :
+                    toc.items.map(i =>
+                        <PathLink
+                            key={i.path.join('-')}
+                            id={id}
+                            path={i.path}
+                            text={i.title[0]}
+                        />)
+            }
+        </div>
     </div>
 }
 
@@ -130,4 +134,17 @@ function Header({ children }: HeaderProps) {
     }}>
         {children}
     </div>
+}
+
+function navigateToPath(id: string, path: BookPath) {
+    navigate(bookUrl(id, path));
+}
+
+function bookUrl(id: string, path: BookPath) {
+    return `/book/${id}/${path.join('-')}`;
+}
+
+function setBrowserPath(id: string, path: BookPath) {
+    const url = bookUrl(id, path);
+    window.history.replaceState(null, '', url);
 }

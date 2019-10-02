@@ -117,6 +117,9 @@ function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksD
         },
         bookPathToBlockPath(path) {
             // TODO: implement properly
+            if (path.length === 0) {
+                return { block: 0 };
+            }
             const blockIndex = prefixes
                 .findIndex(pre => isSubpath(pre, path));
             const idx = blockIndex >= 0

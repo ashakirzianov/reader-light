@@ -1,18 +1,33 @@
 import * as React from 'react';
-import { Book } from "booka-common";
+import { Book, BookPath } from "booka-common";
 
 import { BookComp } from './BookComp';
 
 export type PublicBookProps = {
     bookName: string,
+    path: BookPath,
 };
 
-export function PublicBookComp({ bookName }: PublicBookProps) {
-    const [booka, setBooka] = React.useState<Booka | undefined>(undefined);
-    fetchBooka(bookName).then(setBooka);
+export function PublicBookComp({ bookName, path }: PublicBookProps) {
+    type BookaCache = {
+        [id: string]: Booka | undefined,
+    };
+    const [cache, setCache] = React.useState<BookaCache>({});
+    const booka = cache[bookName];
+    if (booka === undefined) {
+        fetchBooka(bookName).then(booka => setCache({
+            ...cache,
+            [bookName]: booka,
+        }));
+    }
+
     return booka === undefined
         ? <div>...</div>
-        : <BookComp book={booka.book} />;
+        : <BookComp
+            book={booka.book}
+            id={bookName}
+            path={path}
+        />;
 }
 
 type Booka = {

@@ -47,6 +47,7 @@ export function BookFragmentComp({
             };
         }))
         : undefined;
+
     return <BookNodesComp
         {...rest}
         onScroll={scrollHandler}
