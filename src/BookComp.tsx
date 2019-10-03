@@ -19,6 +19,15 @@ export function BookComp({ book, id, path }: BookProps) {
             navigateToPath(id, ref[1]);
         }
     }, [book, id]);
+
+    // const [selection, setSelection] = React.useState<BookSelection | undefined>(undefined);
+    // const colorization: ColorizedRange[] = selection === undefined
+    //     ? []
+    //     : [{
+    //         color: 'yellow',
+    //         range: selection.range,
+    //     }];
+
     return <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -52,6 +61,8 @@ export function BookComp({ book, id, path }: BookProps) {
                     setBrowserPath(id, p);
                 }}
                 onRefClick={onRefClick}
+            // colorization={colorization}
+            // onSelectionChange={setSelection}
             />
         </div>
         <PathLink
