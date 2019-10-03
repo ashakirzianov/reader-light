@@ -1,10 +1,11 @@
 import * as React from 'react';
+import { Link, navigate } from '@reach/router';
+import { throttle } from 'lodash';
 import {
     Book, fragmentForPath, BookPath, findReference,
 } from 'booka-common';
 import { BookFragmentComp } from './reader';
 import { TableOfContents, tocForBook } from 'booka-common';
-import { Link, navigate } from '@reach/router';
 
 export type BookProps = {
     book: Book,
@@ -57,9 +58,9 @@ export function BookComp({ book, id, path }: BookProps) {
                 refColor='blue'
                 refHoverColor='purple'
                 pathToScroll={path}
-                onScroll={p => {
+                onScroll={throttle(p => {
                     setBrowserPath(id, p);
-                }}
+                }, 500)}
                 onRefClick={onRefClick}
             // colorization={colorization}
             // onSelectionChange={setSelection}
