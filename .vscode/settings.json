@@ -4,8 +4,10 @@
         "Subpath",
         "booka",
         "bookas",
+        "browserslist",
         "dont",
         "downlevel",
-        "esnext"
+        "esnext",
+        "welldone"
     ]
 }
