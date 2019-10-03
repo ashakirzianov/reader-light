@@ -302,7 +302,7 @@ function applyAttrsRange(fragments: RichTextFragment[], range: AttrsRange) {
     const result: RichTextFragment[] = [];
     let start = 0;
     for (const frag of fragments) {
-        const end = frag.text.length;
+        const end = start + frag.text.length;
         if (end <= range.start) {
             result.push(frag);
         } else if (start < range.start) {
