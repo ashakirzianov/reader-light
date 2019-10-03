@@ -1,26 +1,28 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { PublicBookComp } from './Public';
+import { Router } from '@reach/router';
+import { BookPath } from 'booka-common';
 
+function BookRoute(props: any) {
+  const path = parsePath(props.bookPath);
+  return <PublicBookComp bookName={props.bookId} path={path} />;
+}
 const App: React.FC = () => {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  return <Router>
+    <BookRoute path='/book/:bookId' />
+    <BookRoute path='/book/:bookId/:bookPath' />
+  </Router>;
+}
+
+function parsePath(path: string | undefined): BookPath {
+  if (!path) {
+    return [];
+  }
+  const result = path.split('-')
+    .map(pc => parseInt(pc, 10));
+  return result.some(isNaN)
+    ? []
+    : result;
 }
 
 export default App;
