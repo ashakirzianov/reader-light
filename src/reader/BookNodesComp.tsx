@@ -73,8 +73,6 @@ export function BookNodesComp({
     }, [onSelectionChange, blocksData]);
 
     const blockPathToScroll = pathToScroll && blocksData.bookPathToBlockPath(pathToScroll);
-    console.log(pathToScroll);
-    console.log(blockPathToScroll);
 
     return <RichText
         blocks={blocksData.blocks}

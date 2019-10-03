@@ -53,14 +53,13 @@ export function RichText({
     pathToScroll, onScroll, onSelectionChange,
     onRefClick,
 }: RichTextProps) {
-
     const refMap = React.useRef<PathMap<RefType>>(makePathMap());
 
-    useScroll(React.useCallback(() => {
+    useScroll(React.useCallback(async () => {
         if (!onScroll) {
             return;
         }
-        const newCurrentPath = computeCurrentPath(refMap.current);
+        const newCurrentPath = await computeCurrentPath(refMap.current);
         if (newCurrentPath) {
             onScroll(newCurrentPath);
         }
@@ -283,10 +282,10 @@ function useSelection(callback: (e: Event) => void) {
 
 // Scroll
 
-function computeCurrentPath(refMap: PathMap<RefType>) {
+async function computeCurrentPath(refMap: PathMap<RefType>) {
     let last: Path | undefined;
     for (const [path, ref] of refMap.iterator()) {
-        const isVisible = isPartiallyVisible(ref);
+        const isVisible = await isPartiallyVisible(ref);
         if (isVisible) {
             if (path) {
                 last = path;
@@ -297,7 +296,7 @@ function computeCurrentPath(refMap: PathMap<RefType>) {
     return last;
 }
 
-function isPartiallyVisible(ref?: RefType) {
+async function isPartiallyVisible(ref?: RefType) {
     if (ref) {
         const rect = boundingClientRect(ref);
         if (rect) {
