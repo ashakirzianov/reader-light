@@ -219,7 +219,7 @@ function makePathMap<T>(): PathMap<T> {
         get(path) {
             const block = map[path.block];
             if (path.symbol !== undefined) {
-                return block && block.symbols[path.symbol];
+                return block && (block.symbols[path.symbol] || block.value);
             } else {
                 return block && block.value;
             }

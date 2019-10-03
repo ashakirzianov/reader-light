@@ -11,6 +11,7 @@ import {
     Color, Path, RichTextSelection,
 } from './RichText';
 import { GroupNode } from 'booka-common';
+import { samePath } from 'booka-common';
 
 export type ColorizedRange = {
     color: Color,
@@ -72,6 +73,8 @@ export function BookNodesComp({
     }, [onSelectionChange, blocksData]);
 
     const blockPathToScroll = pathToScroll && blocksData.bookPathToBlockPath(pathToScroll);
+    console.log(pathToScroll);
+    console.log(blockPathToScroll);
 
     return <RichText
         blocks={blocksData.blocks}
@@ -103,8 +106,7 @@ type BlocksData = {
 function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksData {
     const prefixedBlocks = blocksForNodes(nodes, env);
     const blocks = prefixedBlocks.map(pb => pb.block);
-    // We want to find index of last (most precise) prefix, so reverse an array
-    const prefixes = prefixedBlocks.map(pb => pb.prefix).reverse();
+    const prefixes = prefixedBlocks.map(pb => pb.prefix);
 
     return {
         blocks,
@@ -120,19 +122,24 @@ function buildBlocksData(nodes: BookContentNode[], env: BuildBlocksEnv): BlocksD
             if (path.length === 0) {
                 return { block: 0 };
             }
-            const blockIndex = prefixes
-                .findIndex(pre => isSubpath(pre, path));
-            const idx = blockIndex >= 0
-                // Convert to index in original, non-reversed array
-                ? prefixes.length - blockIndex - 1
-                : undefined;
-
-            return idx ? {
-                block: idx,
-                symbol: path.length > 1
-                    ? path[path.length - 1]
-                    : undefined,
-            } : undefined;
+            let blockIndex = prefixes
+                .findIndex(pre => samePath(pre, path));
+            if (blockIndex >= 0) {
+                return {
+                    block: blockIndex,
+                    symbol: path.length > prefixes[blockIndex].length
+                        ? path[prefixes[blockIndex].length]
+                        : undefined,
+                };
+            } else {
+                const withoutSymbol = path.slice(0, path.length - 1);
+                blockIndex = prefixes
+                    .findIndex(pre => samePath(pre, withoutSymbol));
+                return blockIndex >= 0 ? {
+                    block: blockIndex,
+                    symbol: path[prefixes[blockIndex].length],
+                } : undefined;
+            }
         },
     };
 }
