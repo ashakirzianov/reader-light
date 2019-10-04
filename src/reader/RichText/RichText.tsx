@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {
     Color, Path,
-    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment, RichTextListFragment,
+    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment, RichTextListFragment, RichTextTableFragment,
 } from './model';
 import {
     fragmentLength, makePathMap, PathMap, assertNever,
@@ -228,7 +228,7 @@ function RichTextListFragmentComp({
     fragment: { kind, items },
     onRefClick, refCallback, path,
 }: RichTextFragmentProps<RichTextListFragment>) {
-    const children: JSX.Element[] = [];
+    const lis: JSX.Element[] = [];
     let currentOffset = 0;
     for (let listIdx = 0; listIdx < items.length; listIdx++) {
         const item = items[listIdx];
@@ -237,18 +237,46 @@ function RichTextListFragmentComp({
             offset: currentOffset,
             onRefClick, refCallback, path,
         });
-        children.push(<li key={listIdx}>
+        lis.push(<li key={listIdx}>
             {fragments}
         </li>);
         currentOffset = offset;
     }
     if (kind === 'ordered') {
         return <ol>
-            {children}
+            {lis}
         </ol>;
     } else {
         return <ul>
-            {children}
+            {lis}
         </ul>;
     }
+}
+
+function RichTextTableFragmentComp({
+    fragment: { rows },
+    onRefClick, refCallback, path,
+}: RichTextFragmentProps<RichTextTableFragment>) {
+    const trs: JSX.Element[] = [];
+    let currentOffset = 0;
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
+        const tds: JSX.Element[] = []
+        for (let cellIdx = 0; cellIdx < row.length; cellIdx++) {
+            const cell = row[cellIdx];
+            const { fragments, offset } = buildFragments({
+                fragments: cell,
+                offset: currentOffset,
+                onRefClick, refCallback, path,
+            });
+            tds.push(<td key={cellIdx}>
+                {fragments}
+            </td>);
+            currentOffset = offset;
+        }
+        trs.push(<tr key={rowIdx}>
+            {tds}
+        </tr>);
+    }
+    return <table>{trs}</table>
 }
