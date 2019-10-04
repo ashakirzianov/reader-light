@@ -157,8 +157,7 @@ function RichTextFragmentComp({ fragment, ...rest }: RichTextFragmentProps) {
         case 'list':
             return RichTextListFragmentComp({ fragment, ...rest });
         case 'table':
-            // TODO: implement
-            return null;
+            return RichTextTableFragmentComp({ fragment, ...rest });
         default:
             assertNever(fragment);
             return null;
@@ -278,5 +277,9 @@ function RichTextTableFragmentComp({
             {tds}
         </tr>);
     }
-    return <table>{trs}</table>
+    return <table style={{
+        border: '1px solid',
+    }}>
+        <tbody>{trs}</tbody>
+    </table>
 }
