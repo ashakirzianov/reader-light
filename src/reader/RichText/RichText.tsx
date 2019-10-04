@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {
     Color, Path,
-    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment,
+    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment, RichTextListFragment,
 } from './model';
 import {
     fragmentLength, makePathMap, PathMap, assertNever,
@@ -86,21 +86,6 @@ type RichTextBlockProps = {
     onRefClick?: (refId: string) => void,
 };
 function RichTextBlockComp({ block, refCallback, path, onRefClick }: RichTextBlockProps) {
-    const children: JSX.Element[] = [];
-    let currentOffset = 0;
-    for (let idx = 0; idx < block.fragments.length; idx++) {
-        const frag = block.fragments[idx];
-        const offset = currentOffset;
-        children.push(<RichTextFragmentComp
-            key={idx}
-            path={{ ...path, symbol: offset }}
-            fragment={frag}
-            refCallback={refCallback}
-            onRefClick={onRefClick}
-        />);
-        currentOffset += fragmentLength(frag);
-    }
-
     return <div style={{
         display: 'flex',
         alignSelf: block.center
@@ -117,9 +102,44 @@ function RichTextBlockComp({ block, refCallback, path, onRefClick }: RichTextBlo
             id={pathToId(path)}
             ref={ref => refCallback(ref, path)}
         >
-            {children}
+            {buildFragments({
+                offset: 0,
+                fragments: block.fragments,
+                path, refCallback, onRefClick,
+            }).fragments}
         </span>
     </div>;
+}
+
+type BuildFragmentsProps = {
+    fragments: RichTextFragment[],
+    offset: number,
+    path: Path,
+    refCallback: (ref: RefType, path: Path) => void,
+    onRefClick?: (refId: string) => void,
+};
+function buildFragments({
+    fragments, path, refCallback, onRefClick, offset,
+}: BuildFragmentsProps) {
+    const children: JSX.Element[] = [];
+    let currentOffset = offset;
+    for (let idx = 0; idx < fragments.length; idx++) {
+        const frag = fragments[idx];
+        const offset = currentOffset;
+        children.push(<RichTextFragmentComp
+            key={idx}
+            path={{ ...path, symbol: offset }}
+            fragment={frag}
+            refCallback={refCallback}
+            onRefClick={onRefClick}
+        />);
+        currentOffset += fragmentLength(frag);
+    }
+
+    return {
+        fragments: children,
+        offset: currentOffset,
+    };
 }
 
 type RichTextFragmentProps<F extends RichTextFragment = RichTextFragment> = {
@@ -135,6 +155,7 @@ function RichTextFragmentComp({ fragment, ...rest }: RichTextFragmentProps) {
         case 'image':
             return RichTextImageFragmentComp({ fragment, ...rest });
         case 'list':
+            return RichTextListFragmentComp({ fragment, ...rest });
         case 'table':
             // TODO: implement
             return null;
@@ -201,4 +222,33 @@ function RichTextImageFragmentComp({
         alt=''
         ref={ref => refCallback(ref, path)}
     />;
+}
+
+function RichTextListFragmentComp({
+    fragment: { kind, items },
+    onRefClick, refCallback, path,
+}: RichTextFragmentProps<RichTextListFragment>) {
+    const children: JSX.Element[] = [];
+    let currentOffset = 0;
+    for (let listIdx = 0; listIdx < items.length; listIdx++) {
+        const item = items[listIdx];
+        const { fragments, offset } = buildFragments({
+            fragments: item,
+            offset: currentOffset,
+            onRefClick, refCallback, path,
+        });
+        children.push(<li key={listIdx}>
+            {fragments}
+        </li>);
+        currentOffset = offset;
+    }
+    if (kind === 'ordered') {
+        return <ol>
+            {children}
+        </ol>;
+    } else {
+        return <ul>
+            {children}
+        </ul>;
+    }
 }
