@@ -57,7 +57,7 @@ export type RichTextFragment =
     ;
 export type RichTextBlock = {
     center?: boolean,
-    dontIndent?: boolean,
+    indent?: boolean,
     margin?: number,
     fragments: RichTextFragment[],
 };

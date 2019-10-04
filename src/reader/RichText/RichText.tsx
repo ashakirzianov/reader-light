@@ -93,7 +93,7 @@ function RichTextBlockComp({ block, refCallback, path, onRefClick }: RichTextBlo
             : undefined,
         textAlign: 'justify',
         float: 'left',
-        textIndent: !block.dontIndent ? '4em' : undefined,
+        textIndent: block.indent ? '4em' : undefined,
         margin: block.margin !== undefined
             ? `${block.margin}em`
             : undefined,

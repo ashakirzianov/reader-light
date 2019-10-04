@@ -195,7 +195,7 @@ function blocksForParagraph(node: ParagraphNode, env: BuildBlocksEnv): BlockWith
     }
     return [{
         block: {
-            dontIndent: needDropCase,
+            indent: !needDropCase,
             fragments,
         },
         prefix: env.path,
@@ -272,7 +272,6 @@ function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockW
                 ? 1
                 : 0.8,
             center: level >= 0,
-            dontIndent: true,
             fragments: lines.map(line => ({
                 text: `${line}\n`,
                 attrs,
