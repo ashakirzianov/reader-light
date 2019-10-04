@@ -3,7 +3,7 @@ import * as React from 'react';
 import {
     BookContentNode, Span, flatten, spanAttrs, assertNever,
     ParagraphNode, ChapterNode, BookPath, isSubpath,
-    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode,
+    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode, TableNode,
 } from 'booka-common';
 
 import {
@@ -157,9 +157,10 @@ function blocksForNode(node: BookContentNode, env: BuildBlocksEnv): BlockWithPre
             return blocksForGroup(node, env);
         case 'list':
             return blocksForList(node, env);
+        case 'table':
+            return blocksForTable(node, env);
         case 'image-data':
         case 'image-ref':
-        case 'table':
         case 'separator':
             // TODO: support
             return [];
@@ -228,6 +229,23 @@ function blocksForList(node: ListNode, env: BuildBlocksEnv): BlockWithPrefix[] {
             ? 'unordered'
             : 'ordered',
         items,
+    }];
+    fragments = colorizeFragments(fragments, env.colorization, env.path);
+    return [{
+        block: {
+            fragments,
+        },
+        prefix: env.path,
+    }];
+}
+
+function blocksForTable(node: TableNode, env: BuildBlocksEnv): BlockWithPrefix[] {
+    const rows = node.rows.map(row => {
+        return row.map(cell => fragmentsForSpan(cell, env));
+    });
+    let fragments: RichTextFragment[] = [{
+        frag: 'table',
+        rows,
     }];
     fragments = colorizeFragments(fragments, env.colorization, env.path);
     return [{
