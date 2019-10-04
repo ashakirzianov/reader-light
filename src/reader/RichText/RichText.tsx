@@ -2,10 +2,10 @@ import * as React from 'react';
 
 import {
     Color, Path,
-    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment,
+    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment,
 } from './model';
 import {
-    fragmentLength, makePathMap, PathMap,
+    fragmentLength, makePathMap, PathMap, assertNever,
 } from './utils';
 import {
     RefType, useScroll, computeCurrentPath, useSelection,
@@ -129,21 +129,21 @@ type RichTextFragmentProps<F extends RichTextFragment = RichTextFragment> = {
     onRefClick?: (refId: string) => void,
 };
 function RichTextFragmentComp({ fragment, ...rest }: RichTextFragmentProps) {
-    // switch (fragment.frag) {
-    //     case undefined:
-    //         return RichTextSimpleFragmentComp({ fragment, ...rest });
-    //     case 'image':
-    //     case 'list':
-    //     case 'table':
-    //         // TODO: implement
-    //         return null;
-    //     default:
-    //         assertNever(fragment);
-    //         return null;
-    // }
-
-    return RichTextSimpleFragmentComp({ fragment, ...rest });
+    switch (fragment.frag) {
+        case undefined:
+            return RichTextSimpleFragmentComp({ fragment, ...rest });
+        case 'image':
+            return RichTextImageFragmentComp({ fragment, ...rest });
+        case 'list':
+        case 'table':
+            // TODO: implement
+            return null;
+        default:
+            assertNever(fragment);
+            return null;
+    }
 }
+
 function RichTextSimpleFragmentComp({
     fragment: { text, attrs },
     refCallback,
@@ -189,4 +189,16 @@ function RichTextSimpleFragmentComp({
     >
         {text}
     </span>;
+}
+
+function RichTextImageFragmentComp({
+    fragment: { src },
+    refCallback,
+    path,
+}: RichTextFragmentProps<RichTextImageFragment>) {
+    return <img
+        src={src}
+        alt=''
+        ref={ref => refCallback(ref, path)}
+    />;
 }

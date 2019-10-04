@@ -7,6 +7,11 @@ export type Range = {
     start: Path,
     end: Path,
 };
+export type AttrsRange = {
+    start: number,
+    end?: number,
+    attrs: RichTextAttrs,
+};
 export type RichTextSelection = {
     text: string,
     range: Range,
@@ -46,9 +51,9 @@ export type RichTextTableFragment = {
 };
 export type RichTextFragment =
     | RichTextSimpleFragment
-    // | RichTextImageFragment
-    // | RichTextListFragment
-    // | RichTextTableFragment
+    | RichTextImageFragment
+    | RichTextListFragment
+    | RichTextTableFragment
     ;
 export type RichTextBlock = {
     center?: boolean,

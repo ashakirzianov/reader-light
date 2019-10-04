@@ -1,25 +1,23 @@
-import { RichTextFragment, Path, Range } from './model';
+import { RichTextFragment, Path, Range, AttrsRange } from './model';
 
 export function assertNever(x: never) {
     return x;
 }
 
 export function fragmentLength(fragment: RichTextFragment): number {
-    // switch (fragment.frag) {
-    //     case undefined:
-    //         return fragment.text.length;
-    //     case 'list':
-    //         return fragmentsLength(flatten(fragment.items));
-    //     case 'table':
-    //         return fragmentsLength(flatten(flatten(fragment.rows)));
-    //     case 'image':
-    //         return 1;
-    //     default:
-    //         assertNever(fragment);
-    //         return 0;
-    // }
-
-    return fragment.text.length;
+    switch (fragment.frag) {
+        case undefined:
+            return fragment.text.length;
+        case 'list':
+            return fragmentsLength(flatten(fragment.items));
+        case 'table':
+            return fragmentsLength(flatten(flatten(fragment.rows)));
+        case 'image':
+            return 1;
+        default:
+            assertNever(fragment);
+            return 0;
+    }
 }
 
 export function fragmentsLength(fragments: RichTextFragment[]): number {
@@ -102,4 +100,74 @@ function pathLessThan(left: Path, right: Path): boolean {
 
 export function flatten<T>(arr: T[][]): T[] {
     return arr.reduce((res, a) => res.concat(a), []);
+}
+
+export function applyAttrsRange(fragments: RichTextFragment[], range: AttrsRange) {
+    const result: RichTextFragment[] = [];
+    let start = 0;
+    for (const frag of fragments) {
+        if (frag.frag !== undefined) {
+            // TODO: support lists and tables
+            result.push(frag);
+            continue;
+        }
+
+        const end = start + frag.text.length;
+        if (end < range.start) {
+            result.push(frag);
+        } else if (start < range.start) {
+            const pre: RichTextFragment = {
+                text: frag.text.substring(0, range.start),
+                attrs: frag.attrs,
+            };
+            if (range.end === undefined || range.end >= end) {
+                const overlap: RichTextFragment = {
+                    text: frag.text.substring(range.start),
+                    attrs: {
+                        ...frag.attrs,
+                        ...range.attrs,
+                    },
+                };
+                result.push(pre, overlap);
+            } else {
+                const overlap: RichTextFragment = {
+                    text: frag.text.substring(range.start, range.end),
+                    attrs: {
+                        ...frag.attrs,
+                        ...range.attrs,
+                    },
+                };
+                const post: RichTextFragment = {
+                    text: frag.text.substring(range.end),
+                    attrs: {
+                        ...frag.attrs,
+                        ...range.attrs,
+                    },
+                };
+                result.push(pre, overlap, post);
+            }
+        } else if (range.end === undefined || start < range.end) {
+            const overlap: RichTextFragment = {
+                text: frag.text.substring(0, range.end),
+                attrs: {
+                    ...frag.attrs,
+                    ...range.attrs,
+                },
+            };
+            if (range.end === undefined || end <= range.end) {
+                result.push(overlap);
+            } else {
+                const post: RichTextFragment = {
+                    text: frag.text.substring(range.end),
+                    attrs: frag.attrs,
+                };
+                result.push(overlap, post);
+            }
+        } else {
+            result.push(frag);
+        }
+        start = end;
+    }
+
+    return result;
 }
