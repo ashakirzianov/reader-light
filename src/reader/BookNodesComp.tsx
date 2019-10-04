@@ -43,7 +43,7 @@ export function BookNodesComp({
         path: [],
         refColor: refColor,
         refHoverColor: refHoverColor,
-        colorization: colorization,
+        colorization: colorization || [],
         fontSize: fontSize,
     });
     const scrollHandler = React.useCallback((path: Path) => {
@@ -88,7 +88,7 @@ export function BookNodesComp({
 
 type BuildBlocksEnv = {
     path: BookPath,
-    colorization: ColorizedRange[] | undefined,
+    colorization: ColorizedRange[],
     fontSize: number,
     refColor: Color,
     refHoverColor: Color,
@@ -180,14 +180,8 @@ function blocksForNodes(nodes: BookContentNode[], env: BuildBlocksEnv): BlockWit
 
 function blocksForParagraph(node: ParagraphNode, env: BuildBlocksEnv): BlockWithPrefix[] {
     let fragments = fragmentsForSpan(pphSpan(node), env);
-    if (env.colorization) {
-        for (const col of env.colorization) {
-            const relative = colorizationRelativeToPath(env.path, col);
-            if (relative) {
-                fragments = applyAttrsRange(fragments, relative);
-            }
-        }
-    }
+    fragments = colorizeFragments(fragments, env.colorization, env.path);
+
     const isFirstParagraph = env.path[env.path.length - 1] === 0;
     const needDropCase = isFirstParagraph && !env.dontDropCase;
     if (needDropCase) {
@@ -235,14 +229,7 @@ function blocksForList(node: ListNode, env: BuildBlocksEnv): BlockWithPrefix[] {
             : 'ordered',
         items,
     }];
-    if (env.colorization) {
-        for (const col of env.colorization) {
-            const relative = colorizationRelativeToPath(env.path, col);
-            if (relative) {
-                fragments = applyAttrsRange(fragments, relative);
-            }
-        }
-    }
+    fragments = colorizeFragments(fragments, env.colorization, env.path);
     return [{
         block: {
             fragments,
@@ -316,6 +303,17 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
             assertNever(span);
             return [];
     }
+}
+
+function colorizeFragments(fragments: RichTextFragment[], colorization: ColorizedRange[], path: BookPath): RichTextFragment[] {
+    for (const col of colorization) {
+        const relative = colorizationRelativeToPath(path, col);
+        if (relative) {
+            fragments = applyAttrsRange(fragments, relative);
+        }
+    }
+
+    return fragments;
 }
 
 function colorizationRelativeToPath(path: BookPath, colorized: ColorizedRange): AttrsRange | undefined {
