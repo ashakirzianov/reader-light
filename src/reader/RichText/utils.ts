@@ -22,7 +22,7 @@ export function fragmentLength(fragment: RichTextFragment): number {
     return fragment.text.length;
 }
 
-function fragmentsLength(fragments: RichTextFragment[]): number {
+export function fragmentsLength(fragments: RichTextFragment[]): number {
     return fragments.reduce((sum, f) => sum + fragmentLength(f), 0);
 }
 
@@ -100,6 +100,6 @@ function pathLessThan(left: Path, right: Path): boolean {
     }
 }
 
-function flatten<T>(arr: T[][]): T[] {
+export function flatten<T>(arr: T[][]): T[] {
     return arr.reduce((res, a) => res.concat(a), []);
 }

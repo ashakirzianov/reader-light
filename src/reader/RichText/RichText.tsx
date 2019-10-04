@@ -10,7 +10,7 @@ import {
 import {
     RefType, useScroll, computeCurrentPath, useSelection,
     pathToId, getSelectionRange, scrollToRef,
-} from './utils.web';
+} from './web-utils';
 
 export type RichTextProps = {
     blocks: RichTextBlock[],
