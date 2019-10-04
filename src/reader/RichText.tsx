@@ -23,13 +23,11 @@ export type RichTextAttrs = Partial<{
     italic: boolean,
     bold: boolean,
     letterSpacing: number,
-    // TODO: remove ?
-    line: boolean,
     ref: string,
 }>;
 export type RichTextFragment = {
     text: string,
-    attrs: RichTextAttrs,
+    attrs?: RichTextAttrs,
 };
 export type RichTextBlock = {
     center?: boolean,
@@ -161,10 +159,12 @@ function RichTextFragment({
     path,
     onRefClick,
 }: RichTextFragmentProps) {
+    attrs = attrs || {};
     return <span
         id={pathToId(path)}
         ref={ref => refCallback(ref, path)}
         style={{
+            whiteSpace: 'pre-line',
             wordBreak: 'break-word',
             color: attrs.color,
             background: attrs.background,
@@ -192,11 +192,11 @@ function RichTextFragment({
             onRefClick === undefined || attrs.ref === undefined ? undefined :
                 e => {
                     e.preventDefault();
-                    onRefClick(attrs.ref!);
+                    onRefClick(attrs!.ref!);
                 }
         }
     >
-        {text}{attrs.line ? <br /> : null}
+        {text}
     </span>;
 }
 

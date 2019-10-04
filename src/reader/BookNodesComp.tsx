@@ -226,7 +226,6 @@ function blocksForGroup(node: GroupNode, env: BuildBlocksEnv): BlockWithPrefix[]
 
 function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockWithPrefix {
     const attrs: RichTextAttrs = {
-        line: true,
         letterSpacing: level === 0
             ? 0.15
             : undefined,
@@ -256,7 +255,7 @@ function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockW
 function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
     switch (span.span) {
         case undefined:
-            return [{ text: span, attrs: {} }];
+            return [{ text: span }];
         case 'compound':
             return flatten(span.spans.map(s => fragmentsForSpan(s, env)));
         case 'attrs':
@@ -267,7 +266,6 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
                     attrs: {
                         italic: map.italic,
                         bold: map.bold,
-                        line: map.line,
                     },
                     start: 0,
                 };
