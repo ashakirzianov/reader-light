@@ -3,7 +3,7 @@ import * as React from 'react';
 import {
     BookContentNode, Span, flatten, spanAttrs, assertNever,
     ParagraphNode, ChapterNode, BookPath, isSubpath,
-    BookRange, pathLessThan, pphSpan, hasSemantic,
+    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode,
 } from 'booka-common';
 
 import {
@@ -155,10 +155,11 @@ function blocksForNode(node: BookContentNode, env: BuildBlocksEnv): BlockWithPre
             return blocksForChapter(node, env);
         case 'group':
             return blocksForGroup(node, env);
+        case 'list':
+            return blocksForList(node, env);
         case 'image-data':
         case 'image-ref':
         case 'table':
-        case 'list':
         case 'separator':
             // TODO: support
             return [];
@@ -223,6 +224,31 @@ function blocksForGroup(node: GroupNode, env: BuildBlocksEnv): BlockWithPrefix[]
     } else {
         return blocksForNodes(node.nodes, env);
     }
+}
+
+function blocksForList(node: ListNode, env: BuildBlocksEnv): BlockWithPrefix[] {
+    const items = node.items.map(i => fragmentsForSpan(i, env));
+    let fragments: RichTextFragment[] = [{
+        frag: 'list',
+        kind: node.kind === 'basic'
+            ? 'unordered'
+            : 'ordered',
+        items,
+    }];
+    if (env.colorization) {
+        for (const col of env.colorization) {
+            const relative = colorizationRelativeToPath(env.path, col);
+            if (relative) {
+                fragments = applyAttrsRange(fragments, relative);
+            }
+        }
+    }
+    return [{
+        block: {
+            fragments,
+        },
+        prefix: env.path,
+    }];
 }
 
 function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockWithPrefix {
