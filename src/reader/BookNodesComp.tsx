@@ -3,7 +3,7 @@ import * as React from 'react';
 import {
     BookContentNode, Span, flatten, spanAttrs, assertNever,
     ParagraphNode, ChapterNode, BookPath, isSubpath,
-    BookRange, pathLessThan,
+    BookRange, pathLessThan, pphSpan, hasSemantic,
 } from 'booka-common';
 
 import {
@@ -149,6 +149,7 @@ type BlockWithPrefix = {
 function blocksForNode(node: BookContentNode, env: BuildBlocksEnv): BlockWithPrefix[] {
     switch (node.node) {
         case undefined:
+        case 'pph':
             return blocksForParagraph(node, env);
         case 'chapter':
             return blocksForChapter(node, env);
@@ -177,7 +178,7 @@ function blocksForNodes(nodes: BookContentNode[], env: BuildBlocksEnv): BlockWit
 }
 
 function blocksForParagraph(node: ParagraphNode, env: BuildBlocksEnv): BlockWithPrefix[] {
-    let fragments = fragmentsForSpan(node, env);
+    let fragments = fragmentsForSpan(pphSpan(node), env);
     if (env.colorization) {
         for (const col of env.colorization) {
             const relative = colorizationRelativeToPath(env.path, col);
@@ -212,8 +213,8 @@ function blocksForChapter(node: ChapterNode, env: BuildBlocksEnv): BlockWithPref
 }
 
 function blocksForGroup(node: GroupNode, env: BuildBlocksEnv): BlockWithPrefix[] {
-    if (node.semantic === 'footnote') {
-        const title = titleBlock(node.title, -1, env);
+    if (hasSemantic(node, 'footnote')) {
+        const title = titleBlock(node.semantic.footnote.title, -1, env);
         const inside = blocksForNodes(node.nodes, {
             ...env,
             dontDropCase: true,
