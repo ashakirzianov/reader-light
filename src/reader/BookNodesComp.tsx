@@ -309,6 +309,8 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
             const result = applyAttrsRange(inside, range);
             return result;
         },
+        // TODO: support images
+        image: image => [],
         // TODO: support semantics
         semantic: s => fragmentsForSpan(s, env),
         default: s => [],
