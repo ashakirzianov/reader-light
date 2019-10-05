@@ -159,8 +159,7 @@ function blocksForNode(node: BookContentNode, env: BuildBlocksEnv): BlockWithPre
             return blocksForList(node, env);
         case 'table':
             return blocksForTable(node, env);
-        case 'image-data':
-        case 'image-ref':
+        case 'image':
         case 'separator':
             // TODO: support
             return [];
