@@ -1,17 +1,17 @@
 import * as React from 'react';
 
 import {
-    BookContentNode, Span, flatten, spanAttrs, assertNever,
-    ParagraphNode, ChapterNode, BookPath, isSubpath,
-    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode, TableNode, isSimpleSpan, isCompoundSpan, subSpans, isAttributedSpan, isRefSpan, isComplexSpan,
+    BookContentNode, ParagraphNode, ChapterNode, GroupNode,
+    ListNode, TableNode,
+    Span, AttributeName, pphSpan, hasSemantic, mapSpanFull,
+    BookRange, BookPath, isSubpath, samePath, pathLessThan,
+    flatten, assertNever,
 } from 'booka-common';
 
 import {
     RichTextBlock, RichTextAttrs, RichTextFragment, RichText,
     Color, Path, RichTextSelection, AttrsRange, applyAttrsRange,
 } from './RichText';
-import { GroupNode } from 'booka-common';
-import { samePath } from 'booka-common';
 
 export type ColorizedRange = {
     color: Color,
@@ -284,38 +284,47 @@ function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockW
 }
 
 function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
-    if (isSimpleSpan(span)) {
-        return [{ text: span }];
-    } else if (isCompoundSpan(span)) {
-        return flatten(subSpans(span).map(s => fragmentsForSpan(s, env)));
-    } else if (isAttributedSpan(span)) {
-        const inside = fragmentsForSpan(span.content, env);
-        const map = spanAttrs(span);
-        const range: AttrsRange = {
-            attrs: {
-                italic: map.italic,
-                bold: map.bold,
-            },
-            start: 0,
-        };
-        const result = applyAttrsRange(inside, range);
-        return result;
-    } else if (isRefSpan(span)) {
-        const inside = fragmentsForSpan(span.content, env);
-        const range: AttrsRange = {
-            attrs: {
-                ref: span.refToId,
-                color: env.refColor,
-            },
-            start: 0,
-        };
-        const result = applyAttrsRange(inside, range);
-        return result;
-    } else if (isComplexSpan(span)) {
-        return fragmentsForSpan(span.content, env);
-    } else {
-        assertNever(span);
-        return [];
+    return mapSpanFull<RichTextFragment[]>(span, {
+        // return mapSpanFull(span, {
+        simple: s => [{ text: s }],
+        compound: ss => flatten(ss.map(s => fragmentsForSpan(s, env))),
+        attr: (s, attr) => {
+            const inside = fragmentsForSpan(s, env);
+            const range: AttrsRange = {
+                attrs: convertAttr(attr),
+                start: 0,
+            };
+            const result = applyAttrsRange(inside, range);
+            return result;
+        },
+        ref: (s, refToId) => {
+            const inside = fragmentsForSpan(s, env);
+            const range: AttrsRange = {
+                attrs: {
+                    ref: refToId,
+                    color: env.refColor,
+                },
+                start: 0,
+            };
+            const result = applyAttrsRange(inside, range);
+            return result;
+        },
+        // TODO: support semantics
+        semantic: s => fragmentsForSpan(s, env),
+        default: s => [],
+    });
+}
+
+function convertAttr(an: AttributeName): RichTextAttrs {
+    switch (an) {
+        case 'italic':
+            return { italic: true };
+        case 'bold':
+            return { bold: true };
+        default:
+            // TODO: support all
+            // TODO: assert never
+            return {};
     }
 }
 
