@@ -241,7 +241,8 @@ function blocksForList(node: ListNode, env: BuildBlocksEnv): BlockWithPrefix[] {
 
 function blocksForTable(node: TableNode, env: BuildBlocksEnv): BlockWithPrefix[] {
     const rows = node.rows.map(row => {
-        return row.map(cell => fragmentsForSpan(cell, env));
+        return row.cells
+            .map(cell => fragmentsForSpan(cell, env));
     });
     let fragments: RichTextFragment[] = [{
         frag: 'table',
