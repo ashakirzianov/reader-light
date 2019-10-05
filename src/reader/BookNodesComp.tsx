@@ -222,7 +222,7 @@ function blocksForGroup(node: GroupNode, env: BuildBlocksEnv): BlockWithPrefix[]
 }
 
 function blocksForList(node: ListNode, env: BuildBlocksEnv): BlockWithPrefix[] {
-    const items = node.items.map(i => fragmentsForSpan(i, env));
+    const items = node.items.map(i => fragmentsForSpan(i.item, env));
     let fragments: RichTextFragment[] = [{
         frag: 'list',
         kind: node.kind === 'basic'
