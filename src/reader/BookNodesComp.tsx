@@ -3,7 +3,7 @@ import * as React from 'react';
 import {
     BookContentNode, Span, flatten, spanAttrs, assertNever,
     ParagraphNode, ChapterNode, BookPath, isSubpath,
-    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode, TableNode,
+    BookRange, pathLessThan, pphSpan, hasSemantic, ListNode, TableNode, isSimpleSpan, isCompoundSpan, subSpans, isAttributedSpan, isRefSpan, isComplexSpan,
 } from 'booka-common';
 
 import {
@@ -284,41 +284,38 @@ function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): BlockW
 }
 
 function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
-    switch (span.span) {
-        case undefined:
-            return [{ text: span }];
-        case 'compound':
-            return flatten(span.spans.map(s => fragmentsForSpan(s, env)));
-        case 'attrs':
-            {
-                const inside = fragmentsForSpan(span.content, env);
-                const map = spanAttrs(span);
-                const range: AttrsRange = {
-                    attrs: {
-                        italic: map.italic,
-                        bold: map.bold,
-                    },
-                    start: 0,
-                };
-                const result = applyAttrsRange(inside, range);
-                return result;
-            }
-        case 'ref':
-            {
-                const inside = fragmentsForSpan(span.content, env);
-                const range: AttrsRange = {
-                    attrs: {
-                        ref: span.refToId,
-                        color: env.refColor,
-                    },
-                    start: 0,
-                };
-                const result = applyAttrsRange(inside, range);
-                return result;
-            }
-        default:
-            assertNever(span);
-            return [];
+    if (isSimpleSpan(span)) {
+        return [{ text: span }];
+    } else if (isCompoundSpan(span)) {
+        return flatten(subSpans(span).map(s => fragmentsForSpan(s, env)));
+    } else if (isAttributedSpan(span)) {
+        const inside = fragmentsForSpan(span.content, env);
+        const map = spanAttrs(span);
+        const range: AttrsRange = {
+            attrs: {
+                italic: map.italic,
+                bold: map.bold,
+            },
+            start: 0,
+        };
+        const result = applyAttrsRange(inside, range);
+        return result;
+    } else if (isRefSpan(span)) {
+        const inside = fragmentsForSpan(span.content, env);
+        const range: AttrsRange = {
+            attrs: {
+                ref: span.refToId,
+                color: env.refColor,
+            },
+            start: 0,
+        };
+        const result = applyAttrsRange(inside, range);
+        return result;
+    } else if (isComplexSpan(span)) {
+        return fragmentsForSpan(span.content, env);
+    } else {
+        assertNever(span);
+        return [];
     }
 }
 
