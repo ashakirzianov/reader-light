@@ -10,13 +10,23 @@ export type ColorizedRange = {
     color: Color,
     range: BookRange,
 };
-
+type BuildBlocksDataArgs = {
+    fragment: BookFragment,
+    colorization: ColorizedRange[] | undefined,
+    fontSize: number,
+    refColor: Color,
+    refHoverColor: Color,
+};
 
 type BlockWithPath = {
     block: RichTextBlock,
     path: BookPath,
 };
 type BlockData = BlockWithPath[];
+export function buildBlocksData(args: BuildBlocksDataArgs) {
+    return Array.from(generateBlocks(args));
+}
+
 export function bookPathForBlockPath(blockPath: Path, data: BlockData): BookPath | undefined {
     const prefix = data[blockPath.block].path;
     const bookPath = blockPath.symbol !== undefined
@@ -49,25 +59,25 @@ export function blockPathForBookPath(path: BookPath, data: BlockData): Path | un
     }
 }
 
-export function buildBlocksData(fragment: BookFragment, env: BuildBlocksEnv) {
-    return Array.from(generateBlocks(fragment, env));
-}
-
-function* generateBlocks(fragment: BookFragment, env: BuildBlocksEnv): Generator<BlockWithPath> {
+function* generateBlocks({
+    fragment, colorization,
+    fontSize, refColor, refHoverColor,
+}: BuildBlocksDataArgs): Generator<BlockWithPath> {
+    let isUnderTitle = false;
     for (const [node, path] of iterateBookFragment(fragment)) {
-        console.log(path);
         const block = blockForNode(node, {
-            ...env,
-            path,
+            isUnderTitle, fontSize, refColor, refHoverColor,
         });
+        if (colorization) {
+            block.fragments = colorizeFragments(block.fragments, colorization, path);
+        }
         yield { block, path };
+        isUnderTitle = node.node === 'chapter';
     }
 }
 
 type BuildBlocksEnv = {
-    // TODO: remove ?
-    path: BookPath,
-    colorization: ColorizedRange[] | undefined,
+    isUnderTitle: boolean,
     fontSize: number,
     refColor: Color,
     refHoverColor: Color,
@@ -99,9 +109,8 @@ function blockForNode(node: BookContentNode, env: BuildBlocksEnv): RichTextBlock
 
 function blockForParagraph(node: ParagraphNode, env: BuildBlocksEnv): RichTextBlock {
     let fragments = fragmentsForSpan(pphSpan(node), env);
-    fragments = colorizeFragments(fragments, env.colorization, env.path);
 
-    const isFirstParagraph = env.path[env.path.length - 1] === 0;
+    const isFirstParagraph = env.isUnderTitle;
     const needDropCase = isFirstParagraph;
     if (needDropCase) {
         const dropCaps: AttrsRange = {
@@ -132,14 +141,13 @@ function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
 
 function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
     const items = node.items.map(i => fragmentsForSpan(i.item, env));
-    let fragments: RichTextFragment[] = [{
+    const fragments: RichTextFragment[] = [{
         frag: 'list',
         kind: node.kind === 'basic'
             ? 'unordered'
             : 'ordered',
         items,
     }];
-    fragments = colorizeFragments(fragments, env.colorization, env.path);
     return { fragments };
 }
 
@@ -148,11 +156,10 @@ function blockForTable(node: TableNode, env: BuildBlocksEnv): RichTextBlock {
         return row.cells
             .map(cell => fragmentsForSpan(cell, env));
     });
-    let fragments: RichTextFragment[] = [{
+    const fragments: RichTextFragment[] = [{
         frag: 'table',
         rows,
     }];
-    fragments = colorizeFragments(fragments, env.colorization, env.path);
     return { fragments };
 }
 
@@ -181,7 +188,6 @@ function titleBlock(lines: string[], level: number, env: BuildBlocksEnv): RichTe
 
 function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
     return mapSpanFull<RichTextFragment[]>(span, {
-        // return mapSpanFull(span, {
         simple: s => [{ text: s }],
         compound: ss => flatten(ss.map(s => fragmentsForSpan(s, env))),
         attr: (s, attr) => {
@@ -226,10 +232,7 @@ function convertAttr(an: AttributeName): RichTextAttrs {
     }
 }
 
-function colorizeFragments(fragments: RichTextFragment[], colorization: ColorizedRange[] | undefined, path: BookPath): RichTextFragment[] {
-    if (colorization === undefined) {
-        return fragments;
-    }
+function colorizeFragments(fragments: RichTextFragment[], colorization: ColorizedRange[], path: BookPath): RichTextFragment[] {
     for (const col of colorization) {
         const relative = colorizationRelativeToPath(path, col);
         if (relative) {

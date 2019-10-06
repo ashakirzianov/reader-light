@@ -34,8 +34,8 @@ export function BookFragmentComp({
     pathToScroll, colorization,
     fontSize, fontFamily, color, refColor, refHoverColor,
 }: BookFragmentProps) {
-    const blocksData = buildBlocksData(fragment, {
-        path: [],
+    const blocksData = buildBlocksData({
+        fragment,
         colorization,
         fontSize,
         refColor,
