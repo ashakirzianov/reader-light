@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookContentNode, assertNever, flatten, ParagraphNode, pphSpan, ChapterNode, GroupNode, getSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
+    BookFragment, BookPath, BookContentNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, getSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -72,7 +72,7 @@ function* generateBlocks({
             block.fragments = colorizeFragments(block.fragments, colorization, path);
         }
         yield { block, path };
-        isUnderTitle = node.node === 'chapter';
+        isUnderTitle = node.node === 'title';
     }
 }
 
@@ -88,8 +88,6 @@ function blockForNode(node: BookContentNode, env: BuildBlocksEnv): RichTextBlock
         case undefined:
         case 'pph':
             return blockForParagraph(node, env);
-        case 'chapter':
-            return blockForChapter(node, env);
         case 'title':
             return blockForTitle(node, env);
         case 'group':
@@ -129,10 +127,6 @@ function blockForParagraph(node: ParagraphNode, env: BuildBlocksEnv): RichTextBl
 
 function blockForTitle(titleNode: TitleNode, env: BuildBlocksEnv): RichTextBlock {
     return titleBlock(titleNode.lines, titleNode.level, env);
-}
-
-function blockForChapter({ level, title }: ChapterNode, env: BuildBlocksEnv): RichTextBlock {
-    return titleBlock(title, level, env);
 }
 
 function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
