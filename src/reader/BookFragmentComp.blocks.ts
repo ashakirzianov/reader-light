@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookContentNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, getSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
+    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, getSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -83,7 +83,7 @@ type BuildBlocksEnv = {
     refHoverColor: Color,
 };
 
-function blockForNode(node: BookContentNode, env: BuildBlocksEnv): RichTextBlock {
+function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
     switch (node.node) {
         case undefined:
         case 'pph':
