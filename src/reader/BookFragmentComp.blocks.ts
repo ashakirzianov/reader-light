@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookContentNode, assertNever, flatten, ParagraphNode, pphSpan, ChapterNode, GroupNode, hasSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
+    BookFragment, BookPath, BookContentNode, assertNever, flatten, ParagraphNode, pphSpan, ChapterNode, GroupNode, getSemantic, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -98,7 +98,6 @@ function blockForNode(node: BookContentNode, env: BuildBlocksEnv): RichTextBlock
             return blockForList(node, env);
         case 'table':
             return blockForTable(node, env);
-        case 'image':
         case 'separator':
             // TODO: support
             return { fragments: [] };
@@ -137,8 +136,9 @@ function blockForChapter({ level, title }: ChapterNode, env: BuildBlocksEnv): Ri
 }
 
 function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
-    if (hasSemantic(node, 'footnote')) {
-        return titleBlock(node.semantic.footnote.title, -1, env);
+    const footnote = getSemantic(node, 'footnote');
+    if (footnote !== undefined) {
+        return titleBlock(footnote.title, -1, env)
     } else {
         // TODO: do not generate ?
         return { fragments: [] };
@@ -146,7 +146,11 @@ function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
 }
 
 function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
-    const items = node.items.map(i => fragmentsForSpan(i.item, env));
+    const items = flatten(
+        node.items.map(i =>
+            i.spans.map(s => fragmentsForSpan(s, env))
+        )
+    );
     const fragments: RichTextFragment[] = [{
         frag: 'list',
         kind: node.kind === 'basic'
