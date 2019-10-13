@@ -36,6 +36,7 @@ export type RichTextSimpleFragment = {
 export type RichTextImageFragment = {
     frag: 'image',
     src: string,
+    title?: string,
 };
 type ListItem = RichTextFragment[];
 export type RichTextListFragment = {

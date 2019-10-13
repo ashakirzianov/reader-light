@@ -208,8 +208,19 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
             const result = applyAttrsRange(inside, range);
             return result;
         },
-        // TODO: support images
-        image: image => [],
+        image: image =>
+            // TODO: support data images
+            image.kind === 'ref'
+                ? [{
+                    frag: 'image',
+                    src: image.ref,
+                    title: image.title,
+                }]
+                : [{
+                    frag: 'image',
+                    src: imageSrcFromBuffer(image.buffer),
+                    title: image.title,
+                }],
         // TODO: support semantics
         semantic: s => fragmentsForSpan(s, env),
         anchor: s => fragmentsForSpan(s, env),
@@ -263,4 +274,12 @@ function colorizationRelativeToPath(path: BookPath, colorized: ColorizedRange): 
     return start !== undefined
         ? { start, end, attrs }
         : undefined;
+}
+
+function imageSrcFromBuffer(buffer: Buffer): string {
+    const arrayBufferView = new Uint8Array((buffer as any).data);
+    const blob = new Blob([arrayBufferView], { type: "image/jpg" });
+    const urlCreator = window.URL || window.webkitURL;
+    const imageUrl = urlCreator.createObjectURL(blob);
+    return imageUrl;
 }

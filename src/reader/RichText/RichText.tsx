@@ -212,13 +212,14 @@ function RichTextSimpleFragmentComp({
 }
 
 function RichTextImageFragmentComp({
-    fragment: { src },
+    fragment: { src, title },
     refCallback,
     path,
 }: RichTextFragmentProps<RichTextImageFragment>) {
     return <img
         src={src}
-        alt=''
+        alt={title}
+        title={title}
         ref={ref => refCallback(ref, path)}
     />;
 }
