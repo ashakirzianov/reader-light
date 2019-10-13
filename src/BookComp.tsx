@@ -15,7 +15,7 @@ export type BookProps = {
 export function BookComp({ book, id, path }: BookProps) {
     const fragment = fragmentForPath(book, path);
     const onRefClick = React.useCallback((refId: string) => {
-        const ref = findReference(refId, book.nodes);
+        const ref = findReference(book.nodes, refId);
         if (ref) {
             navigateToPath(id, ref[1]);
         }
