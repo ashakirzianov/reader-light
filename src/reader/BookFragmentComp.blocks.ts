@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode,
+    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -67,6 +67,7 @@ function* generateBlocks({
     for (const [node, path] of iterateBookFragment(fragment)) {
         const block = blockForNode(node, {
             isUnderTitle, fontSize, refColor, refHoverColor,
+            images: fragment.images || {},
         });
         if (colorization) {
             block.fragments = colorizeFragments(block.fragments, colorization, path);
@@ -81,6 +82,7 @@ type BuildBlocksEnv = {
     fontSize: number,
     refColor: Color,
     refHoverColor: Color,
+    images: ImageDic,
 };
 
 function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
@@ -97,8 +99,11 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
         case 'table':
             return blockForTable(node, env);
         case 'separator':
-            // TODO: support
-            return { fragments: [] };
+            return {
+                fragments: [{
+                    frag: 'line', direction: 'horizontal',
+                }],
+            };
         default:
             assertNever(node);
             // TODO: do not generate empty block
@@ -211,24 +216,38 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
             const result = applyAttrsRange(inside, range);
             return result;
         },
-        image: image =>
-            // TODO: support data images
-            image.kind === 'ref'
-                ? [{
-                    frag: 'image',
-                    src: image.ref,
-                    title: image.title,
-                }]
-                : [{
-                    frag: 'image',
-                    src: imageSrcFromBuffer(image.buffer),
-                    title: image.title,
-                }],
+        image: image => fragmentsForImage(image, env),
         // TODO: support semantics
         semantic: s => fragmentsForSpan(s, env),
         anchor: s => fragmentsForSpan(s, env),
         default: s => [],
     });
+}
+
+function fragmentsForImage(image: Image, env: BuildBlocksEnv): RichTextFragment[] {
+    if (image.image === 'ref') {
+        const resolved = env.images[image.imageId];
+        image = resolved !== undefined
+            ? resolved
+            : image;
+    }
+    switch (image.image) {
+        case 'external':
+            return [{
+                frag: 'image',
+                src: image.url,
+                title: image.title,
+            }];
+        case 'buffer':
+            return [{
+                frag: 'image',
+                src: imageSrcFromBuffer(image.buffer),
+                title: image.title,
+            }];
+        case 'ref':
+        default:
+            return [];
+    }
 }
 
 function convertAttr(an: AttributeName): RichTextAttrs {

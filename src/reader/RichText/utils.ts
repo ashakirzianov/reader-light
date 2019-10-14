@@ -14,6 +14,8 @@ export function fragmentLength(fragment: RichTextFragment): number {
             return fragmentsLength(flatten(flatten(fragment.rows)));
         case 'image':
             return 1;
+        case 'line':
+            return 0;
         default:
             assertNever(fragment);
             return 0;
