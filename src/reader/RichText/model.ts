@@ -50,11 +50,16 @@ export type RichTextTableFragment = {
     frag: 'table',
     rows: TableRow[],
 };
+export type RichTextLineFragment = {
+    frag: 'line',
+    direction: 'horizontal',
+};
 export type RichTextFragment =
     | RichTextSimpleFragment
     | RichTextImageFragment
     | RichTextListFragment
     | RichTextTableFragment
+    | RichTextLineFragment
     ;
 export type RichTextBlock = {
     center?: boolean,

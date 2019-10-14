@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {
     Color, Path,
-    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment, RichTextListFragment, RichTextTableFragment,
+    RichTextFragment, RichTextBlock, RichTextSelection, RichTextSimpleFragment, RichTextImageFragment, RichTextListFragment, RichTextTableFragment, RichTextLineFragment,
 } from './model';
 import {
     fragmentLength, makePathMap, PathMap, assertNever,
@@ -158,6 +158,8 @@ function RichTextFragmentComp({ fragment, ...rest }: RichTextFragmentProps) {
             return RichTextListFragmentComp({ fragment, ...rest });
         case 'table':
             return RichTextTableFragmentComp({ fragment, ...rest });
+        case 'line':
+            return RichTextLineFragmentComp({ fragment, ...rest });
         default:
             assertNever(fragment);
             return null;
@@ -283,4 +285,11 @@ function RichTextTableFragmentComp({
     }}>
         <tbody>{trs}</tbody>
     </table>
+}
+
+function RichTextLineFragmentComp({
+    fragment: { direction },
+    onRefClick, refCallback, path,
+}: RichTextFragmentProps<RichTextLineFragment>) {
+    return <hr />;
 }
