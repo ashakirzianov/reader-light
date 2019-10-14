@@ -17,7 +17,7 @@
     "lodash": "^4.17.15",
     "source-map-explorer": "^2.1.0",
     "@reach/router": "^1.2.1",
-    "typescript": "beta"
+    "typescript": "3.6.3"
   },
   "scripts": {
     "start": "react-scripts start",
