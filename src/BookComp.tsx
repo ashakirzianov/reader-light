@@ -126,7 +126,7 @@ function TableOfContentsComp({ toc, id }: TableOfContentsProps) {
                             key={i.path.join('-')}
                             id={id}
                             path={i.path}
-                            text={i.title[0]}
+                            text={i.title}
                         />)
             }
         </div>

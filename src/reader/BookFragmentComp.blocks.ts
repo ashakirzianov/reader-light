@@ -173,8 +173,11 @@ function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
 
 function blockForTable(node: TableNode, env: BuildBlocksEnv): RichTextBlock {
     const rows = node.rows.map(row => {
-        return row.cells
-            .map(cell => fragmentsForSpan(cell, env));
+        return flatten(row.cells
+            .map(cell =>
+                cell.spans.map(s => fragmentsForSpan(s, env))
+            )
+        );
     });
     const fragments: RichTextFragment[] = [{
         frag: 'table',
