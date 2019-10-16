@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image,
+    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -92,8 +92,6 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
             return blockForParagraph(node, env);
         case 'title':
             return blockForTitle(node, env);
-        case 'group':
-            return blockForGroup(node, env);
         case 'list':
             return blockForList(node, env);
         case 'table':
@@ -104,6 +102,9 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
                     frag: 'line', direction: 'horizontal',
                 }],
             };
+        case 'image': // TODO: support
+        case 'ignore':
+            return { fragments: [] };
         default:
             assertNever(node);
             // TODO: do not generate empty block
@@ -155,15 +156,10 @@ function blockForTitle({ span, level }: TitleNode, env: BuildBlocksEnv): RichTex
     };
 }
 
-function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
-    // TODO: return undef
-    return { fragments: [] };
-}
-
 function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
-    const items = flatten(
+    const items = (
         node.items.map(i =>
-            i.spans.map(s => fragmentsForSpan(s, env))
+            fragmentsForSpan(i.span, env)
         )
     );
     const fragments: RichTextFragment[] = [{
@@ -178,10 +174,8 @@ function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
 
 function blockForTable(node: TableNode, env: BuildBlocksEnv): RichTextBlock {
     const rows = node.rows.map(row => {
-        return flatten(row.cells
-            .map(cell =>
-                cell.spans.map(s => fragmentsForSpan(s, env))
-            )
+        return (row.cells
+            .map(cell => fragmentsForSpan(cell.span, env))
         );
     });
     const fragments: RichTextFragment[] = [{
@@ -204,22 +198,21 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
             const result = applyAttrsRange(inside, range);
             return result;
         },
-        ref: (s, refToId) => {
+        complex: (s, data) => {
             const inside = fragmentsForSpan(s, env);
-            const range: AttrsRange = {
-                attrs: {
-                    ref: refToId,
-                    color: env.refColor,
-                },
-                start: 0,
-            };
+            const range: AttrsRange = data.refToId
+                ? {
+                    attrs: {
+                        ref: data.refToId,
+                        color: env.refColor,
+                    },
+                    start: 0,
+                }
+                : { attrs: {}, start: 0 };
             const result = applyAttrsRange(inside, range);
             return result;
         },
         image: image => fragmentsForImage(image, env),
-        // TODO: support semantics
-        semantic: s => fragmentsForSpan(s, env),
-        anchor: s => fragmentsForSpan(s, env),
         default: s => [],
     });
 }
@@ -241,7 +234,7 @@ function fragmentsForImage(image: Image, env: BuildBlocksEnv): RichTextFragment[
         case 'buffer':
             return [{
                 frag: 'image',
-                src: imageSrcFromBuffer(image.buffer),
+                src: imageSrcFromBase64(image.base64),
                 title: image.title,
             }];
         case 'ref':
@@ -298,8 +291,9 @@ function colorizationRelativeToPath(path: BookPath, colorized: ColorizedRange): 
         : undefined;
 }
 
-function imageSrcFromBuffer(buffer: Buffer): string {
-    const arrayBufferView = new Uint8Array((buffer as any).data);
+function imageSrcFromBase64(base64: string): string {
+    const buffer = Buffer.from(base64, 'base64');
+    const arrayBufferView = new Uint8Array(buffer);
     const blob = new Blob([arrayBufferView], { type: "image/jpg" });
     const urlCreator = window.URL || window.webkitURL;
     const imageUrl = urlCreator.createObjectURL(blob);
