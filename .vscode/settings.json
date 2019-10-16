@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "Interop",
+        "Nums",
         "Subpath",
         "booka",
         "bookas",
@@ -9,5 +10,6 @@
         "downlevel",
         "esnext",
         "welldone"
-    ]
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib"
 }

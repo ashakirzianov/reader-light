@@ -1,61 +1,86 @@
 import * as React from 'react';
 
 import {
-    BookFragment, rangeRelativeToPath, filterUndefined,
-    relativePath, addPaths,
+    BookFragment, BookPath, BookRange,
 } from 'booka-common';
-import { BookNodesProps, BookNodesComp, BookSelection } from './BookNodesComp';
+import {
+    Color, Path, RichText, RichTextSelection,
+} from './RichText';
+import {
+    ColorizedRange, bookPathForBlockPath, buildBlocksData, blockPathForBookPath,
+} from './BookFragmentComp.blocks';
 
-export type BookFragmentProps = Omit<BookNodesProps, 'nodes'> & {
+export type BookSelection = {
+    text: string,
+    range: BookRange,
+};
+export type BookFragmentProps = {
     fragment: BookFragment,
+    colorization?: ColorizedRange[],
+    color: Color,
+    refColor: Color,
+    refHoverColor: Color,
+    fontSize: number,
+    fontFamily: string,
+    pathToScroll?: BookPath,
+    onScroll?: (path: BookPath) => void,
+    onSelectionChange?: (selection: BookSelection | undefined) => void,
+    onRefClick?: (refId: string) => void,
 };
 
 export function BookFragmentComp({
-    fragment, onScroll, onSelectionChange,
+    fragment,
+    onScroll, onSelectionChange, onRefClick,
     pathToScroll, colorization,
-    ...rest }: BookFragmentProps) {
-    const selectionHandler = React.useCallback((selection: BookSelection | undefined) => {
+    fontSize, fontFamily, color, refColor, refHoverColor,
+}: BookFragmentProps) {
+    const blocksData = buildBlocksData({
+        fragment,
+        colorization,
+        fontSize,
+        refColor,
+        refHoverColor,
+    });
+    const scrollHandler = React.useCallback((path: Path) => {
+        if (!onScroll) {
+            return;
+        } else {
+            const bookPath = bookPathForBlockPath(path, blocksData);
+            if (bookPath) {
+                onScroll(bookPath);
+            }
+        }
+    }, [onScroll, blocksData]);
+
+    const selectionHandler = React.useCallback((richTextSelection: RichTextSelection | undefined) => {
         if (!onSelectionChange) {
             return;
         }
-        if (selection) {
-            const start = addPaths(fragment.current, selection.range.start);
-            const end = selection.range.end && addPaths(fragment.current, selection.range.end);
-            const actualSelection = {
-                text: selection.text,
-                range: { start, end },
-            };
-            onSelectionChange(actualSelection);
+        if (richTextSelection === undefined) {
+            onSelectionChange(richTextSelection);
         } else {
-            onSelectionChange(selection);
+            const start = bookPathForBlockPath(richTextSelection.range.start, blocksData);
+            if (start !== undefined) {
+                const end = bookPathForBlockPath(richTextSelection.range.end, blocksData);
+                const bookSelection: BookSelection = {
+                    text: richTextSelection.text,
+                    range: { start, end },
+                };
+                onSelectionChange(bookSelection);
+            }
         }
-    }, [onSelectionChange, fragment]);
+    }, [onSelectionChange, blocksData]);
 
-    const scrollHandler = React.useCallback((path: number[]) => {
-        if (onScroll) {
-            const actualPath = addPaths(fragment.current, path);
-            onScroll(actualPath);
-        }
-    }, [onScroll, fragment]);
+    const blockPathToScroll = pathToScroll && blockPathForBookPath(pathToScroll, blocksData);
 
-    const adjustedPathToScroll = pathToScroll && relativePath(pathToScroll, fragment.current);
-
-    const adjustedColorization = colorization
-        ? filterUndefined(colorization.map(col => {
-            const relativeRange = rangeRelativeToPath(col.range, fragment.current);
-            return relativeRange && {
-                ...col,
-                range: relativeRange,
-            };
-        }))
-        : undefined;
-
-    return <BookNodesComp
-        {...rest}
+    return <RichText
+        blocks={blocksData.map(bd => bd.block)}
+        color={color}
+        fontSize={fontSize}
+        fontFamily={fontFamily}
         onScroll={scrollHandler}
+        pathToScroll={blockPathToScroll}
         onSelectionChange={selectionHandler}
-        nodes={fragment.nodes}
-        pathToScroll={adjustedPathToScroll}
-        colorization={adjustedColorization}
+        onRefClick={onRefClick}
     />;
 }

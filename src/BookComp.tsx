@@ -15,7 +15,7 @@ export type BookProps = {
 export function BookComp({ book, id, path }: BookProps) {
     const fragment = fragmentForPath(book, path);
     const onRefClick = React.useCallback((refId: string) => {
-        const ref = findReference(refId, book.volume);
+        const ref = findReference(book.nodes, refId);
         if (ref) {
             navigateToPath(id, ref[1]);
         }
@@ -126,7 +126,7 @@ function TableOfContentsComp({ toc, id }: TableOfContentsProps) {
                             key={i.path.join('-')}
                             id={id}
                             path={i.path}
-                            text={i.title[0]}
+                            text={i.title}
                         />)
             }
         </div>
