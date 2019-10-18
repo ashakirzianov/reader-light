@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, GroupNode, ListNode, TableNode, Span, mapSpanFull, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image,
+    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, ListNode, TableNode, Span, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image, isSimpleSpan, SingleSpan, isSingleSpan,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -92,8 +92,6 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
             return blockForParagraph(node, env);
         case 'title':
             return blockForTitle(node, env);
-        case 'group':
-            return blockForGroup(node, env);
         case 'list':
             return blockForList(node, env);
         case 'table':
@@ -104,6 +102,10 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
                     frag: 'line', direction: 'horizontal',
                 }],
             };
+        case 'image': // TODO: support
+            return { fragments: fragmentsForImage(node.image, env) };
+        case 'ignore':
+            return { fragments: [] };
         default:
             assertNever(node);
             // TODO: do not generate empty block
@@ -155,15 +157,10 @@ function blockForTitle({ span, level }: TitleNode, env: BuildBlocksEnv): RichTex
     };
 }
 
-function blockForGroup(node: GroupNode, env: BuildBlocksEnv): RichTextBlock {
-    // TODO: return undef
-    return { fragments: [] };
-}
-
 function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
-    const items = flatten(
+    const items = (
         node.items.map(i =>
-            i.spans.map(s => fragmentsForSpan(s, env))
+            fragmentsForSpan(i.span, env)
         )
     );
     const fragments: RichTextFragment[] = [{
@@ -178,10 +175,8 @@ function blockForList(node: ListNode, env: BuildBlocksEnv): RichTextBlock {
 
 function blockForTable(node: TableNode, env: BuildBlocksEnv): RichTextBlock {
     const rows = node.rows.map(row => {
-        return flatten(row.cells
-            .map(cell =>
-                cell.spans.map(s => fragmentsForSpan(s, env))
-            )
+        return (row.cells
+            .map(cell => fragmentsForSpan(cell.span, env))
         );
     });
     const fragments: RichTextFragment[] = [{
@@ -192,39 +187,63 @@ function blockForTable(node: TableNode, env: BuildBlocksEnv): RichTextBlock {
 }
 
 function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
-    return mapSpanFull<RichTextFragment[]>(span, {
-        simple: s => [{ text: s }],
-        compound: ss => flatten(ss.map(s => fragmentsForSpan(s, env))),
-        attr: (s, attr) => {
-            const inside = fragmentsForSpan(s, env);
-            const range: AttrsRange = {
-                attrs: convertAttr(attr),
-                start: 0,
-            };
-            const result = applyAttrsRange(inside, range);
-            return result;
-        },
-        ref: (s, refToId) => {
-            const inside = fragmentsForSpan(s, env);
-            const range: AttrsRange = {
-                attrs: {
-                    ref: refToId,
-                    color: env.refColor,
-                },
-                start: 0,
-            };
-            const result = applyAttrsRange(inside, range);
-            return result;
-        },
-        image: image => fragmentsForImage(image, env),
-        // TODO: support semantics
-        semantic: s => fragmentsForSpan(s, env),
-        anchor: s => fragmentsForSpan(s, env),
-        default: s => [],
-    });
+    if (isSingleSpan(span)) {
+        return fragmentsForSingleSpan(span, env);
+    } else {
+        const ss = span as Span[];
+        return flatten(ss.map(s => fragmentsForSpan(s, env)))
+    }
+}
+
+function fragmentsForSingleSpan(span: SingleSpan, env: BuildBlocksEnv): RichTextFragment[] {
+    switch (span.span) {
+        case 'ref':
+            {
+                const inside = fragmentsForSpan(span.content, env);
+                const range: AttrsRange = span.refToId
+                    ? {
+                        attrs: {
+                            ref: span.refToId,
+                            color: env.refColor,
+                        },
+                        start: 0,
+                    }
+                    : { attrs: {}, start: 0 };
+                const result = applyAttrsRange(inside, range);
+                return result;
+            }
+        case 'bold': case 'italic': case 'big': case 'small':
+        case 'sub': case 'sup': case 'quote':
+            {
+                const inside = fragmentsForSpan(span.content, env);
+                const range: AttrsRange = {
+                    attrs: convertAttr(span.span),
+                    start: 0,
+                };
+                const result = applyAttrsRange(inside, range);
+                return result;
+            }
+        case 'ruby': case 'plain':
+            {
+                return fragmentsForSpan(span.content, env);
+            }
+        case 'image':
+            return fragmentsForImage(span.image, env);
+        case undefined:
+            if (isSimpleSpan(span)) {
+                return [{ text: span }];
+            } else {
+                return [];
+            }
+        default:
+            assertNever(span);
+            return [];
+    }
 }
 
 function fragmentsForImage(image: Image, env: BuildBlocksEnv): RichTextFragment[] {
+    console.log('HERE');
+    console.log(image.imageId);
     if (image.image === 'ref') {
         const resolved = env.images[image.imageId];
         image = resolved !== undefined
@@ -241,7 +260,7 @@ function fragmentsForImage(image: Image, env: BuildBlocksEnv): RichTextFragment[
         case 'buffer':
             return [{
                 frag: 'image',
-                src: imageSrcFromBuffer(image.buffer),
+                src: imageSrcFromBase64(image.base64),
                 title: image.title,
             }];
         case 'ref':
@@ -298,8 +317,9 @@ function colorizationRelativeToPath(path: BookPath, colorized: ColorizedRange): 
         : undefined;
 }
 
-function imageSrcFromBuffer(buffer: Buffer): string {
-    const arrayBufferView = new Uint8Array((buffer as any).data);
+function imageSrcFromBase64(base64: string): string {
+    const buffer = Buffer.from(base64, 'base64');
+    const arrayBufferView = new Uint8Array(buffer);
     const blob = new Blob([arrayBufferView], { type: "image/jpg" });
     const urlCreator = window.URL || window.webkitURL;
     const imageUrl = urlCreator.createObjectURL(blob);
