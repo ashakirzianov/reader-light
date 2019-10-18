@@ -1,5 +1,5 @@
 import {
-    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, ListNode, TableNode, Span, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image, isSimpleSpan, isCompoundSpan, SingleSpan, isSingleSpan,
+    BookFragment, BookPath, BookNode, assertNever, flatten, ParagraphNode, pphSpan, ListNode, TableNode, Span, AttributeName, pathLessThan, isSubpath, iterateBookFragment, samePath, BookRange, TitleNode, ImageDic, Image, isSimpleSpan, SingleSpan, isSingleSpan,
 } from 'booka-common';
 import {
     RichTextBlock, AttrsRange, applyAttrsRange, RichTextFragment,
@@ -103,6 +103,7 @@ function blockForNode(node: BookNode, env: BuildBlocksEnv): RichTextBlock {
                 }],
             };
         case 'image': // TODO: support
+            return { fragments: fragmentsForImage(node.image, env) };
         case 'ignore':
             return { fragments: [] };
         default:
@@ -195,10 +196,10 @@ function fragmentsForSpan(span: Span, env: BuildBlocksEnv): RichTextFragment[] {
 }
 
 function fragmentsForSingleSpan(span: SingleSpan, env: BuildBlocksEnv): RichTextFragment[] {
-    switch (span.node) {
+    switch (span.span) {
         case 'ref':
             {
-                const inside = fragmentsForSpan(span.span, env);
+                const inside = fragmentsForSpan(span.content, env);
                 const range: AttrsRange = span.refToId
                     ? {
                         attrs: {
@@ -214,23 +215,25 @@ function fragmentsForSingleSpan(span: SingleSpan, env: BuildBlocksEnv): RichText
         case 'bold': case 'italic': case 'big': case 'small':
         case 'sub': case 'sup': case 'quote':
             {
-                const inside = fragmentsForSpan(span.span, env);
+                const inside = fragmentsForSpan(span.content, env);
                 const range: AttrsRange = {
-                    attrs: convertAttr(span.node),
+                    attrs: convertAttr(span.span),
                     start: 0,
                 };
                 const result = applyAttrsRange(inside, range);
                 return result;
             }
-        case 'ruby': case 'span':
+        case 'ruby': case 'plain':
             {
-                return fragmentsForSpan(span.span, env);
+                return fragmentsForSpan(span.content, env);
             }
-        case 'image-span':
+        case 'image':
             return fragmentsForImage(span.image, env);
         case undefined:
             if (isSimpleSpan(span)) {
                 return [{ text: span }];
+            } else {
+                return [];
             }
         default:
             assertNever(span);
@@ -239,6 +242,8 @@ function fragmentsForSingleSpan(span: SingleSpan, env: BuildBlocksEnv): RichText
 }
 
 function fragmentsForImage(image: Image, env: BuildBlocksEnv): RichTextFragment[] {
+    console.log('HERE');
+    console.log(image.imageId);
     if (image.image === 'ref') {
         const resolved = env.images[image.imageId];
         image = resolved !== undefined
